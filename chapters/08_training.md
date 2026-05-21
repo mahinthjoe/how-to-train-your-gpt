@@ -163,7 +163,7 @@ AdamW update step:
 
 ```python
 # autocast context: automatically uses bfloat16 where safe
-with torch.cuda.amp.autocast(enabled=use_amp):
+with torch.amp.autocast(device.type, enabled=use_amp):
     _, loss = model(input_ids, targets=target_ids)
 
 # scaler handles loss scaling for float16, not needed for bfloat16 on modern GPUs
@@ -391,8 +391,8 @@ def train(model, train_dataset, config, device, save_dir="checkpoints"):
         max_steps=config.max_steps, max_lr=config.learning_rate,
     )
 
-    use_amp = device.type == "cuda"
-    scaler = torch.cuda.amp.GradScaler(enabled=use_amp) if use_amp else None
+    use_amp = device.type != "cpu"
+    scaler = torch.amp.GradScaler(device.type, enabled=use_amp) if use_amp else None
 
     step = 0
     total_loss = 0.0
@@ -414,7 +414,7 @@ def train(model, train_dataset, config, device, save_dir="checkpoints"):
             target_ids = target_ids.to(device, non_blocking=True)
 
             # ===== FORWARD: Predict next tokens, measure error =====
-            with torch.cuda.amp.autocast(enabled=use_amp):
+            with torch.amp.autocast(device.type, enabled=use_amp):
                 _, loss = model(input_ids, targets=target_ids)
             loss = loss / config.grad_accum_steps
 

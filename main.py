@@ -11,6 +11,18 @@ from datasets import load_dataset
 import matplotlib.pyplot as plt
 
 
+# ===== DEVICE SELECTION =====
+def find_device():
+    if torch.cuda.is_available():
+        print(f"GPU: {torch.cuda.get_device_name(0)}")
+        return torch.device("cuda")
+    if torch.mps.is_available():
+        print("Using Apple MPS")
+        return torch.device("mps")
+    print("Using CPU")
+    return torch.device("cpu")
+
+
 # ===== ROTARY POSITION EMBEDDINGS (RoPE) =====
 class RotaryPositionalEmbedding(nn.Module):
     def __init__(self, d_model, max_seq_len=2048, theta=10000.0):
@@ -313,8 +325,8 @@ def train(model, train_dataset, config, device, steps=500):
     optimizer = create_optimizer(model, config)
     scheduler = CosineWarmupScheduler(optimizer, config.warmup_steps,
                                        steps, max_lr=config.learning_rate)
-    use_amp = device.type == 'cuda'
-    scaler = torch.amp.GradScaler('cuda', enabled=use_amp) if use_amp else None
+    use_amp = device.type != 'cpu'
+    scaler = torch.amp.GradScaler(device.type, enabled=use_amp) if use_amp else None
     step = 0
     loss_history = []
     start = time.time()
@@ -325,7 +337,7 @@ def train(model, train_dataset, config, device, steps=500):
                 break
             input_ids = input_ids.to(device)
             target_ids = target_ids.to(device)
-            with torch.amp.autocast('cuda', enabled=use_amp):
+            with torch.amp.autocast(device.type, enabled=use_amp):
                 _, loss = model(input_ids, target_ids)
             loss = loss / config.grad_accum_steps
             if scaler:
@@ -384,12 +396,7 @@ def main():
     #     warmup_steps=2000, learning_rate=3e-4,
     # )
 
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        print(f"GPU: {torch.cuda.get_device_name(0)}")
-    else:
-        device = torch.device("cpu")
-        print("Using CPU")
+    device = find_device()
 
     tokenizer = SimpleTokenizer()
     print("Loading training data...")
