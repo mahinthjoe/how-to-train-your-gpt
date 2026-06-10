@@ -3,3 +3,4 @@ checkpoints/
 __pycache__/
 *.pyc
 loss_curve.png
+gpt_env/
