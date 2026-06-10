@@ -131,8 +131,19 @@ pip install torch tiktoken datasets numpy matplotlib --index-url https://downloa
 # Or use the requirements file
 pip install -r requirements.txt
 
-# 4. Verify GPU (optional but recommended)
+# 4. Verify GPU (optional but recommendedM)
 python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}')"
+I got CUDA:False so I did
+```
+pip uninstall torch torchvision torchaudio
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+and verify with
+```
+python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}')"
+```
+CUDA:True Read CUDAFalseREADME.md
+
 
 # 5. Start reading!
 open chapters/00_overview.md
