@@ -37,10 +37,11 @@ class RotaryPositionalEmbedding(nn.Module):
         self.register_buffer("sin_cached", emb.sin())
 
     @staticmethod
+    @staticmethod
     def rotate_half(x):
-        x1 = x[..., : x.shape[-1] // 2]
-        x2 = x[..., x.shape[-1] // 2 :]
-        return torch.cat([-x2, x1], dim=-1)
+        x_even = x[..., 0::2]
+        x_odd  = x[..., 1::2]
+        return torch.stack([-x_odd, x_even], dim=-1).flatten(-2)
 
     def forward(self, x, seq_len):
         cos = self.cos_cached[:seq_len].unsqueeze(0).unsqueeze(0)
@@ -265,7 +266,7 @@ class TextDataset(Dataset):
 
 def load_training_data(max_samples=None):
     print("Loading dataset: wikitext-103-raw-v1...")
-    dataset = load_dataset("wikitext", "wikitext-103-raw-v1", split="train")
+    dataset = load_dataset("Salesforce/wikitext", "wikitext-103-raw-v1", split="train")
     texts = [item["text"] for item in dataset if item["text"].strip()]
     if max_samples:
         texts = texts[:max_samples]

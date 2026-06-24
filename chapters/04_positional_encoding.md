@@ -207,24 +207,11 @@ class RotaryPositionalEmbedding(nn.Module):
         self.register_buffer("sin_cached", emb.sin())   # sin of each angle
 
     @staticmethod
-    def rotate_half(x: torch.Tensor) -> torch.Tensor:
-        """
-        WHAT: Prepare a vector for the rotation formula.
-        WHY:  The rotation formula is: x' = x*cos + rotate_half(x)*sin
-        
-              For vector [x0, x1, x2, x3, x4, x5]:
-              rotate_half returns [-x1, x0, -x3, x2, -x5, x4]
-              
-              Why this works: For pair (x0, x1) rotated by angle θ:
-                x0' = x0*cos(θ) - x1*sin(θ)   ← matches: x0*cos + (-x1)*sin
-                x1' = x0*sin(θ) + x1*cos(θ)   ← matches: x1*cos + (x0)*sin
-              
-              So executing (x*cos + rotate_half(x)*sin) performs rotation
-              on every dimension pair simultaneously — no loop needed!
-        """
-        x1 = x[..., : x.shape[-1] // 2]   # First half:  [x0, x2, x4, ...]
-        x2 = x[..., x.shape[-1] // 2 :]   # Second half: [x1, x3, x5, ...]
-        return torch.cat([-x2, x1], dim=-1)  # [-x1, x0, -x3, x2, -x5, x4, ...]
+    @staticmethod
+    def rotate_half(x):
+        x_even = x[..., 0::2]
+        x_odd  = x[..., 1::2]
+        return torch.stack([-x_odd, x_even], dim=-1).flatten(-2)
 
     def forward(self, x: torch.Tensor, seq_len: int) -> torch.Tensor:
         """
